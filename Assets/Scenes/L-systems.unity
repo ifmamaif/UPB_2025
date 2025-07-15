@@ -226,6 +226,7 @@ GameObject:
   m_Component:
   - component: {fileID: 225396098}
   - component: {fileID: 225396097}
+  - component: {fileID: 225396099}
   m_Layer: 0
   m_Name: LSystem
   m_TagString: Untagged
@@ -247,11 +248,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_renderMode: 0
   m_axiom: F
-  m_iterations: 4
-  m_angle: 25
-  m_length: 1
-  m_rulesList: []
-  m_autoUpdate: 0
+  m_iterations: 5
+  m_angle: -108.81
+  m_length: 0.8
+  m_rulesList:
+  - _key: F
+    value: F+F-
+  m_autoUpdate: 1
 --- !u!4 &225396098
 Transform:
   m_ObjectHideFlags: 0
@@ -261,12 +264,200 @@ Transform:
   m_GameObject: {fileID: 225396096}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -25.629658, y: 17.017946, z: -9.812855}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!120 &225396099
+LineRenderer:
+  serializedVersion: 2
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 225396096}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 0
+  m_LightProbeUsage: 0
+  m_ReflectionProbeUsage: 0
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 637150516}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_Positions:
+  - {x: 0, y: 0, z: 0}
+  - {x: 0, y: 0.8, z: 0}
+  - {x: 0.75727445, y: 0.54205537, z: 0}
+  - {x: 1.5145489, y: 0.2841107, z: 0}
+  - {x: 1.0262116, y: -0.34955075, z: 0}
+  - {x: 1.7834861, y: -0.6074954, z: 0}
+  - {x: 1.2951488, y: -1.2411568, z: 0}
+  - {x: 0.8068115, y: -1.8748183, z: 0}
+  - {x: 0.364447, y: -1.2082496, z: 0}
+  - {x: 1.1217215, y: -1.4661943, z: 0}
+  - {x: 0.63338417, y: -2.0998557, z: 0}
+  - {x: 0.14504683, y: -2.7335172, z: 0}
+  - {x: -0.29731768, y: -2.0669484, z: 0}
+  - {x: -0.785655, y: -2.70061, z: 0}
+  - {x: -1.2280195, y: -2.0340412, z: 0}
+  - {x: -1.6703839, y: -1.3674724, z: 0}
+  - {x: -0.8967827, y: -1.1636555, z: 0}
+  - {x: -0.13950813, y: -1.4216002, z: 0}
+  - {x: -0.62784547, y: -2.0552616, z: 0}
+  - {x: -1.1161828, y: -2.6889231, z: 0}
+  - {x: -1.5585473, y: -2.0223544, z: 0}
+  - {x: -2.0468845, y: -2.6560159, z: 0}
+  - {x: -2.489249, y: -1.9894471, z: 0}
+  - {x: -2.9316134, y: -1.3228784, z: 0}
+  - {x: -2.1580122, y: -1.1190615, z: 0}
+  - {x: -2.6463494, y: -1.752723, z: 0}
+  - {x: -3.088714, y: -1.0861542, z: 0}
+  - {x: -3.5310783, y: -0.41958553, z: 0}
+  - {x: -2.757477, y: -0.21576868, z: 0}
+  - {x: -3.1998415, y: 0.4508, z: 0}
+  - {x: -2.4262402, y: 0.65461683, z: 0}
+  - {x: -1.6526389, y: 0.85843366, z: 0}
+  - {x: -1.7091402, y: 0.060431242, z: 0}
+  m_Parameters:
+    serializedVersion: 3
+    widthMultiplier: 1
+    widthCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 0.1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    colorGradient:
+      serializedVersion: 2
+      key0: {r: 1, g: 1, b: 1, a: 1}
+      key1: {r: 1, g: 1, b: 1, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: -1
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    numCornerVertices: 0
+    numCapVertices: 0
+    alignment: 0
+    textureMode: 0
+    textureScale: {x: 1, y: 1}
+    shadowBias: 0.5
+    generateLightingData: 0
+  m_MaskInteraction: 0
+  m_UseWorldSpace: 1
+  m_Loop: 0
+  m_ApplyActiveColorSpace: 1
+--- !u!21 &637150516
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Sprites/Default
+  m_Shader: {fileID: 10753, guid: 0000000000000000f000000000000000, type: 0}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AlphaTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - PixelSnap: 0
+    - _EnableExternalAlpha: 0
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Flip: {r: 1, g: 1, b: 1, a: 1}
+    - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &2050169463
 GameObject:
   m_ObjectHideFlags: 0
