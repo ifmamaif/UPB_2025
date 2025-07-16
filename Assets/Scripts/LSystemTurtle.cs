@@ -1,32 +1,40 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 public class LSystemTurtle : MonoBehaviour
 {
     [SerializeField] private RenderModeType m_renderMode = RenderModeType.LineRenderer;
 
-    [SerializeField] public string m_axiom = "F";
+    [SerializeField] private string m_axiom = "F";
 
     [Range(0, 10)]
-    [SerializeField] public int m_iterations = 4;
+    [SerializeField] private int m_iterations = 4;
 
     [Range(0.0f, 360.0f)]
-    [SerializeField] public float m_angle = 25.0f;
+    [SerializeField] private float m_angle = 25.0f;
 
     [Range(0.1f, 5.0f)]
-    [SerializeField] public float m_length = 1.0f;
+    [SerializeField] private float m_length = 1.0f;
 
-    [SerializeField] private List<Rule> m_rulesList = new List<Rule>();
+    [Range(0.1f, 5.0f)]
+    [SerializeField] private float m_width = 0.1f;
+
+    [SerializeField] private float m_widthScale = 2.0f;
+
+    [SerializeField] private float m_lengthScale = 1.5f;
+
+    [SerializeField] private Vector3 m_initialDirection = Vector3.up;
+
+    [SerializeField] private List<Rule> m_rulesList;
 
     [SerializeField] private bool m_autoUpdate = false;
 
     private Dictionary<char, string> m_rules = new Dictionary<char, string>();
 
     private Stack<TransformInfo> m_transformStack = new Stack<TransformInfo>();
-    private Vector3 m_currentDirection = Vector3.up;
 
     private LineRenderer m_lineRenderer;
-    private List<Vector3> m_positions = new List<Vector3>();
 
     private GameObject m_meshParent;
 
@@ -49,81 +57,167 @@ public class LSystemTurtle : MonoBehaviour
     private string GenerateLSystemString()
     {
         string lsystem = m_axiom;
+        StringBuilder builder = new StringBuilder();
 
         for (int i = 0; i < m_iterations; i++)
         {
-            string nextString = "";
+            builder.Clear();
+
             foreach (char c in lsystem)
             {
-                if (m_rules.ContainsKey(c))
-                {
-                    nextString += m_rules[c];
-                }
+                if (m_rules.TryGetValue(c, out string replacement))
+                    builder.Append(replacement);
                 else
-                {
-                    nextString += c;
-                }
+                    builder.Append(c);
             }
 
-            lsystem = nextString;
+            lsystem = builder.ToString();
         }
 
         return lsystem;
     }
 
+    private List<SymbolToken> ParseLSystemString(string input)
+    {
+        List<SymbolToken> tokens = new List<SymbolToken>();
+        int i = 0;
+
+        while (i < input.Length)
+        {
+            char c = input[i];
+
+            if (char.IsWhiteSpace(c))
+            {
+                i++;
+                continue;
+            }
+
+            if (char.IsLetterOrDigit(c) || "+-&^/\\[]!\"?_".Contains(c))
+            {
+                float? param = null;
+
+                if (i + 1 < input.Length && input[i + 1] == '(')
+                {
+                    int start = i + 2;
+                    int end = input.IndexOf(')', start);
+                    if (end > start)
+                    {
+                        string paramStr = input.Substring(start, end - start);
+                        if (float.TryParse(paramStr, out float parsed))
+                            param = parsed;
+                        i = end + 1;
+                    }
+                    else
+                    {
+                        i++;
+                    }
+                }
+                else
+                {
+                    i++;
+                }
+
+                tokens.Add(new SymbolToken { symbol = c, parameter = param });
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        return tokens;
+    }
+
     private void DrawLSystem(string lsystem)
     {
         Vector3 currentPosition = Vector3.zero;
-        m_currentDirection = Vector3.up;
-        m_positions.Clear();
+        Vector3 currentDirection = m_initialDirection.normalized;
+
+        List<Segment> segments = new List<Segment>();
+
         m_transformStack.Clear();
 
-        m_positions.Add(currentPosition);
         Vector3 previousPosition = currentPosition;
-        List<(Vector3, Vector3)> segments = new List<(Vector3, Vector3)>();
 
-        foreach (char c in lsystem)
+        float currentLength = m_length;
+        float currentWidth = m_width;
+
+        foreach (var token in ParseLSystemString(lsystem))
         {
+            char c = token.symbol;
+            float? p = token.parameter;
+
             if (c == 'F')
             {
-                currentPosition += m_currentDirection * m_length;
-                segments.Add((previousPosition, currentPosition));
+                float len = p ?? currentLength;
+                currentPosition += currentDirection * len;
+                segments.Add(new Segment { start = previousPosition, end = currentPosition, width = currentWidth });
                 previousPosition = currentPosition;
             }
             else if (c == '+')
             {
-                m_currentDirection = Quaternion.Euler(0, 0, m_angle) * m_currentDirection;
+                float angle = p ?? m_angle;
+                currentDirection = Quaternion.Euler(0, 0, angle) * currentDirection;
             }
             else if (c == '-')
             {
-                m_currentDirection = Quaternion.Euler(0, 0, -m_angle) * m_currentDirection;
+                float angle = p ?? m_angle;
+                currentDirection = Quaternion.Euler(0, 0, -angle) * currentDirection;
             }
             else if (c == '&')
             {
-                m_currentDirection = Quaternion.Euler(m_angle, 0, 0) * m_currentDirection;
+                float angle = p ?? m_angle;
+                currentDirection = Quaternion.Euler(angle, 0, 0) * currentDirection;
             }
             else if (c == '^')
             {
-                m_currentDirection = Quaternion.Euler(-m_angle, 0, 0) * m_currentDirection;
+                float angle = p ?? m_angle;
+                currentDirection = Quaternion.Euler(-angle, 0, 0) * currentDirection;
             }
             else if (c == '/')
             {
-                m_currentDirection = Quaternion.Euler(0, m_angle, 0) * m_currentDirection;
+                float angle = p ?? m_angle;
+                currentDirection = Quaternion.Euler(0, angle, 0) * currentDirection;
             }
             else if (c == '\\')
             {
-                m_currentDirection = Quaternion.Euler(0, -m_angle, 0) * m_currentDirection;
+                float angle = p ?? m_angle;
+                currentDirection = Quaternion.Euler(0, -angle, 0) * currentDirection;
             }
             else if (c == '[')
             {
-                m_transformStack.Push(new TransformInfo { position = currentPosition, direction = m_currentDirection });
+                m_transformStack.Push(new TransformInfo
+                {
+                    position = currentPosition,
+                    direction = currentDirection,
+                    length = currentLength,
+                    width = currentWidth
+                });
             }
             else if (c == ']')
             {
                 TransformInfo info = m_transformStack.Pop();
                 currentPosition = info.position;
-                m_currentDirection = info.direction;
+                currentDirection = info.direction;
+                currentLength = info.length;
+                currentWidth = info.width;
                 previousPosition = currentPosition;
+            }
+            else if (c == '!')
+            {
+                currentWidth *= m_widthScale;
+            }
+            else if (c == '?')
+            {
+                currentWidth /= m_widthScale;
+            }
+            else if (c == '"')
+            {
+                currentLength *= m_lengthScale;
+            }
+            else if (c == '_')
+            {
+                currentLength /= m_lengthScale;
             }
         }
 
@@ -137,7 +231,7 @@ public class LSystemTurtle : MonoBehaviour
         }
     }
 
-    private void DrawLines(List<(Vector3 start, Vector3 end)> segments)
+    private void DrawLines(List<Segment> segments)
     {
         List<Vector3> positions = new List<Vector3>();
 
@@ -156,15 +250,15 @@ public class LSystemTurtle : MonoBehaviour
         m_lineRenderer.endColor = Color.white;
     }
 
-    private void DrawMesh(List<(Vector3 start, Vector3 end)> segments)
+    private void DrawMesh(List<Segment> segments)
     {
         foreach (var segment in segments)
         {
-            CreateCylinderBetween(segment.start, segment.end);
+            CreateCylinderBetween(segment.start, segment.end, segment.width);
         }
     }
 
-    private void CreateCylinderBetween(Vector3 start, Vector3 end)
+    private void CreateCylinderBetween(Vector3 start, Vector3 end, float width)
     {
         Vector3 direction = end - start;
         float length = direction.magnitude;
@@ -174,7 +268,7 @@ public class LSystemTurtle : MonoBehaviour
         GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         cylinder.transform.position = start + (direction / 2.0f);
         cylinder.transform.up = direction.normalized;
-        cylinder.transform.localScale = new Vector3(0.1f, length / 2.0f, 0.1f);
+        cylinder.transform.localScale = new Vector3(width, length / 2.0f, width);
         cylinder.transform.parent = m_meshParent != null ? m_meshParent.transform : this.transform;
     }
 
@@ -233,6 +327,21 @@ public class LSystemTurtle : MonoBehaviour
     {
         public Vector3 position;
         public Vector3 direction;
+        public float length;
+        public float width;
+    }
+
+    private struct Segment
+    {
+        public Vector3 start;
+        public Vector3 end;
+        public float width;
+    }
+
+    private struct SymbolToken
+    {
+        public char symbol;
+        public float? parameter;
     }
 
     [System.Serializable]
