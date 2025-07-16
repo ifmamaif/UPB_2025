@@ -27,16 +27,14 @@ public class LSystemTurtle : MonoBehaviour
     [SerializeField] private Vector3 m_initialDirection = Vector3.up;
 
     [SerializeField] private List<Rule> m_rulesList;
+    [SerializeField] private List<Material> m_materials;
 
     [SerializeField] private bool m_autoUpdate = false;
 
     private Dictionary<char, string> m_rules = new Dictionary<char, string>();
 
-    private Stack<TransformInfo> m_transformStack = new Stack<TransformInfo>();
-
-    private LineRenderer m_lineRenderer;
-
     private GameObject m_meshParent;
+    private GameObject m_lineParent;
 
     public void GenerateInEditor()
     {
@@ -134,13 +132,13 @@ public class LSystemTurtle : MonoBehaviour
         Vector3 currentDirection = m_initialDirection.normalized;
 
         List<Segment> segments = new List<Segment>();
-
-        m_transformStack.Clear();
+        Stack<TransformInfo> transformStack = new Stack<TransformInfo>();
 
         Vector3 previousPosition = currentPosition;
 
         float currentLength = m_length;
         float currentWidth = m_width;
+        Material currentMaterial = m_materials != null && m_materials.Count > 0 ? m_materials[0] : null;
 
         foreach (var token in ParseLSystemString(lsystem))
         {
@@ -151,56 +149,71 @@ public class LSystemTurtle : MonoBehaviour
             {
                 float len = p ?? currentLength;
                 currentPosition += currentDirection * len;
-                segments.Add(new Segment { start = previousPosition, end = currentPosition, width = currentWidth });
+                segments.Add(new Segment
+                {
+                    start = previousPosition,
+                    end = currentPosition,
+                    width = currentWidth,
+                    material = currentMaterial
+                });
+
                 previousPosition = currentPosition;
             }
             else if (c == '+')
             {
                 float angle = p ?? m_angle;
                 currentDirection = Quaternion.Euler(0, 0, angle) * currentDirection;
+                currentDirection = currentDirection.normalized;
             }
             else if (c == '-')
             {
                 float angle = p ?? m_angle;
                 currentDirection = Quaternion.Euler(0, 0, -angle) * currentDirection;
+                currentDirection = currentDirection.normalized;
             }
             else if (c == '&')
             {
                 float angle = p ?? m_angle;
                 currentDirection = Quaternion.Euler(angle, 0, 0) * currentDirection;
+                currentDirection = currentDirection.normalized;
             }
             else if (c == '^')
             {
                 float angle = p ?? m_angle;
                 currentDirection = Quaternion.Euler(-angle, 0, 0) * currentDirection;
+                currentDirection = currentDirection.normalized;
             }
             else if (c == '/')
             {
                 float angle = p ?? m_angle;
                 currentDirection = Quaternion.Euler(0, angle, 0) * currentDirection;
+                currentDirection = currentDirection.normalized;
             }
             else if (c == '\\')
             {
                 float angle = p ?? m_angle;
                 currentDirection = Quaternion.Euler(0, -angle, 0) * currentDirection;
+                currentDirection = currentDirection.normalized;
             }
             else if (c == '[')
             {
-                m_transformStack.Push(new TransformInfo
+                transformStack.Push(new TransformInfo
                 {
                     position = currentPosition,
                     direction = currentDirection,
                     length = currentLength,
-                    width = currentWidth
+                    width = currentWidth,
+                    material = currentMaterial
                 });
             }
             else if (c == ']')
             {
-                TransformInfo info = m_transformStack.Pop();
+                TransformInfo info = transformStack.Pop();
                 currentPosition = info.position;
                 currentDirection = info.direction;
                 currentLength = info.length;
                 currentWidth = info.width;
+                currentMaterial = info.material;
                 previousPosition = currentPosition;
             }
             else if (c == '!')
@@ -219,6 +232,14 @@ public class LSystemTurtle : MonoBehaviour
             {
                 currentLength /= m_lengthScale;
             }
+            else if (c == 'M')
+            {
+                int index = p.HasValue ? Mathf.FloorToInt(p.Value) : 0;
+                if (index >= 0 && index < m_materials.Count)
+                {
+                    currentMaterial = m_materials[index];
+                }
+            }
         }
 
         if (m_renderMode == RenderModeType.LineRenderer)
@@ -233,32 +254,42 @@ public class LSystemTurtle : MonoBehaviour
 
     private void DrawLines(List<Segment> segments)
     {
-        List<Vector3> positions = new List<Vector3>();
+        if (segments == null || segments.Count == 0)
+            return;
 
-        positions.Add(segments[0].start);
-        foreach (var segment in segments)
+        for (int i = 0; i < segments.Count; i++)
         {
-            positions.Add(segment.end);
-        }
+            GameObject lineObj = new GameObject($"LineSegment_{i}");
+            lineObj.transform.parent = m_lineParent.transform;
 
-        m_lineRenderer.positionCount = positions.Count;
-        m_lineRenderer.SetPositions(positions.ToArray());
-        m_lineRenderer.startWidth = 0.1f;
-        m_lineRenderer.endWidth = 0.1f;
-        m_lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-        m_lineRenderer.startColor = Color.white;
-        m_lineRenderer.endColor = Color.white;
+            LineRenderer lr = lineObj.AddComponent<LineRenderer>();
+            lr.positionCount = 2;
+            lr.SetPosition(0, segments[i].start);
+            lr.SetPosition(1, segments[i].end);
+
+            lr.startWidth = segments[i].width;
+            lr.endWidth = segments[i].width;
+            lr.useWorldSpace = true;
+            lr.material = segments[i].material != null
+                ? segments[i].material
+                : new Material(Shader.Find("Sprites/Default"));
+            lr.startColor = Color.white;
+            lr.endColor = Color.white;
+        }
     }
 
     private void DrawMesh(List<Segment> segments)
     {
+        if (segments == null || segments.Count == 0)
+            return;
+
         foreach (var segment in segments)
         {
-            CreateCylinderBetween(segment.start, segment.end, segment.width);
+            CreateCylinder(segment.start, segment.end, segment.width, segment.material);
         }
     }
 
-    private void CreateCylinderBetween(Vector3 start, Vector3 end, float width)
+    private void CreateCylinder(Vector3 start, Vector3 end, float width, Material material)
     {
         Vector3 direction = end - start;
         float length = direction.magnitude;
@@ -270,32 +301,42 @@ public class LSystemTurtle : MonoBehaviour
         cylinder.transform.up = direction.normalized;
         cylinder.transform.localScale = new Vector3(width, length / 2.0f, width);
         cylinder.transform.parent = m_meshParent != null ? m_meshParent.transform : this.transform;
+
+        if (material != null)
+        {
+            Renderer renderer = cylinder.GetComponent<Renderer>();
+            renderer.material = material;
+        }
     }
 
     public void EnsureLineRendererIfNeeded()
     {
         if (m_renderMode == RenderModeType.LineRenderer)
         {
-            if (m_lineRenderer == null)
-            {
-                m_lineRenderer = GetComponent<LineRenderer>();
-                if (m_lineRenderer == null)
-                    m_lineRenderer = gameObject.AddComponent<LineRenderer>();
-            }
-
             ClearMeshObjects();
+            ClearLineObjects();
+
             if (m_meshParent != null)
             {
                 DestroyImmediate(m_meshParent);
                 m_meshParent = null;
             }
+
+            if (m_lineParent == null)
+            {
+                m_lineParent = new GameObject("LineParent");
+                m_lineParent.transform.parent = this.transform;
+                m_lineParent.transform.localPosition = Vector3.zero;
+                m_lineParent.transform.localRotation = Quaternion.identity;
+                m_lineParent.transform.localScale = Vector3.one;
+            }
         }
         else
         {
-            if (m_lineRenderer != null)
+            if (m_lineParent != null)
             {
-                DestroyImmediate(m_lineRenderer);
-                m_lineRenderer = null;
+                DestroyImmediate(m_lineParent);
+                m_lineParent = null;
             }
 
             if (m_meshParent == null)
@@ -308,6 +349,7 @@ public class LSystemTurtle : MonoBehaviour
             }
 
             ClearMeshObjects();
+            ClearLineObjects();
         }
     }
 
@@ -323,12 +365,24 @@ public class LSystemTurtle : MonoBehaviour
         }
     }
 
+    private void ClearLineObjects()
+    {
+        if (m_lineParent == null) return;
+
+        for (int i = m_lineParent.transform.childCount - 1; i >= 0; i--)
+        {
+            Transform child = m_lineParent.transform.GetChild(i);
+            DestroyImmediate(child.gameObject);
+        }
+    }
+
     private struct TransformInfo
     {
         public Vector3 position;
         public Vector3 direction;
         public float length;
         public float width;
+        public Material material;
     }
 
     private struct Segment
@@ -336,6 +390,7 @@ public class LSystemTurtle : MonoBehaviour
         public Vector3 start;
         public Vector3 end;
         public float width;
+        public Material material;
     }
 
     private struct SymbolToken
