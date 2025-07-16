@@ -6,17 +6,22 @@ public class LSystemTurtle : MonoBehaviour
     [SerializeField] private RenderModeType m_renderMode = RenderModeType.LineRenderer;
 
     [SerializeField] public string m_axiom = "F";
+
+    [Range(0, 10)]
     [SerializeField] public int m_iterations = 4;
+
+    [Range(0.0f, 360.0f)]
     [SerializeField] public float m_angle = 25.0f;
+
+    [Range(0.1f, 5.0f)]
     [SerializeField] public float m_length = 1.0f;
+
     [SerializeField] private List<Rule> m_rulesList = new List<Rule>();
 
     [SerializeField] private bool m_autoUpdate = false;
 
     private Dictionary<char, string> m_rules = new Dictionary<char, string>();
-    private string m_currentString;
 
-    private Vector3 m_currentPosition = Vector3.zero;
     private Stack<TransformInfo> m_transformStack = new Stack<TransformInfo>();
     private Vector3 m_currentDirection = Vector3.up;
 
@@ -37,18 +42,18 @@ public class LSystemTurtle : MonoBehaviour
             }
         }
 
-        GenerateLsystem();
-        DrawLSystem();
+        string lsystem = GenerateLSystemString();
+        DrawLSystem(lsystem);
     }
 
-    private void GenerateLsystem()
+    private string GenerateLSystemString()
     {
-        m_currentString = m_axiom;
+        string lsystem = m_axiom;
 
         for (int i = 0; i < m_iterations; i++)
         {
             string nextString = "";
-            foreach (char c in m_currentString)
+            foreach (char c in lsystem)
             {
                 if (m_rules.ContainsKey(c))
                 {
@@ -60,34 +65,30 @@ public class LSystemTurtle : MonoBehaviour
                 }
             }
 
-            m_currentString = nextString;
+            lsystem = nextString;
         }
+
+        return lsystem;
     }
 
-    private void DrawLSystem()
+    private void DrawLSystem(string lsystem)
     {
-        m_currentPosition = Vector3.zero;
+        Vector3 currentPosition = Vector3.zero;
         m_currentDirection = Vector3.up;
         m_positions.Clear();
         m_transformStack.Clear();
 
-        m_positions.Add(m_currentPosition);
-        Vector3 previousPosition = m_currentPosition;
+        m_positions.Add(currentPosition);
+        Vector3 previousPosition = currentPosition;
+        List<(Vector3, Vector3)> segments = new List<(Vector3, Vector3)>();
 
-        foreach (char c in m_currentString)
+        foreach (char c in lsystem)
         {
             if (c == 'F')
             {
-                m_currentPosition += m_currentDirection * m_length;
-                if (m_renderMode == RenderModeType.LineRenderer)
-                {
-                    m_positions.Add(m_currentPosition);
-                }
-                else if (m_renderMode == RenderModeType.Mesh)
-                {
-                    CreateCylinderBetween(previousPosition, m_currentPosition);
-                }
-                previousPosition = m_currentPosition;
+                currentPosition += m_currentDirection * m_length;
+                segments.Add((previousPosition, currentPosition));
+                previousPosition = currentPosition;
             }
             else if (c == '+')
             {
@@ -97,32 +98,69 @@ public class LSystemTurtle : MonoBehaviour
             {
                 m_currentDirection = Quaternion.Euler(0, 0, -m_angle) * m_currentDirection;
             }
+            else if (c == '&')
+            {
+                m_currentDirection = Quaternion.Euler(m_angle, 0, 0) * m_currentDirection;
+            }
+            else if (c == '^')
+            {
+                m_currentDirection = Quaternion.Euler(-m_angle, 0, 0) * m_currentDirection;
+            }
+            else if (c == '/')
+            {
+                m_currentDirection = Quaternion.Euler(0, m_angle, 0) * m_currentDirection;
+            }
+            else if (c == '\\')
+            {
+                m_currentDirection = Quaternion.Euler(0, -m_angle, 0) * m_currentDirection;
+            }
             else if (c == '[')
             {
-                m_transformStack.Push(new TransformInfo { position = m_currentPosition, direction = m_currentDirection });
+                m_transformStack.Push(new TransformInfo { position = currentPosition, direction = m_currentDirection });
             }
             else if (c == ']')
             {
                 TransformInfo info = m_transformStack.Pop();
-                m_currentPosition = info.position;
+                currentPosition = info.position;
                 m_currentDirection = info.direction;
-                previousPosition = m_currentPosition;
-                if (m_renderMode == RenderModeType.LineRenderer)
-                {
-                    m_positions.Add(m_currentPosition);
-                }
+                previousPosition = currentPosition;
             }
         }
 
         if (m_renderMode == RenderModeType.LineRenderer)
         {
-            m_lineRenderer.positionCount = m_positions.Count;
-            m_lineRenderer.SetPositions(m_positions.ToArray());
-            m_lineRenderer.startWidth = 0.1f;
-            m_lineRenderer.endWidth = 0.1f;
-            m_lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-            m_lineRenderer.startColor = Color.white;
-            m_lineRenderer.endColor = Color.white;
+            DrawLines(segments);
+        }
+        else
+        {
+            DrawMesh(segments);
+        }
+    }
+
+    private void DrawLines(List<(Vector3 start, Vector3 end)> segments)
+    {
+        List<Vector3> positions = new List<Vector3>();
+
+        positions.Add(segments[0].start);
+        foreach (var segment in segments)
+        {
+            positions.Add(segment.end);
+        }
+
+        m_lineRenderer.positionCount = positions.Count;
+        m_lineRenderer.SetPositions(positions.ToArray());
+        m_lineRenderer.startWidth = 0.1f;
+        m_lineRenderer.endWidth = 0.1f;
+        m_lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        m_lineRenderer.startColor = Color.white;
+        m_lineRenderer.endColor = Color.white;
+    }
+
+    private void DrawMesh(List<(Vector3 start, Vector3 end)> segments)
+    {
+        foreach (var segment in segments)
+        {
+            CreateCylinderBetween(segment.start, segment.end);
         }
     }
 
@@ -137,16 +175,7 @@ public class LSystemTurtle : MonoBehaviour
         cylinder.transform.position = start + (direction / 2.0f);
         cylinder.transform.up = direction.normalized;
         cylinder.transform.localScale = new Vector3(0.1f, length / 2.0f, 0.1f);
-        cylinder.transform.parent = this.transform;
-
-        if (m_meshParent != null)
-        {
-            cylinder.transform.parent = m_meshParent.transform;
-        }
-        else
-        {
-            cylinder.transform.parent = this.transform;
-        }
+        cylinder.transform.parent = m_meshParent != null ? m_meshParent.transform : this.transform;
     }
 
     public void EnsureLineRendererIfNeeded()
@@ -242,7 +271,7 @@ public class LSystemTurtle : MonoBehaviour
     public enum RenderModeType
     {
         LineRenderer,
-        Mesh
+        Cylinder,
     }
 
     private void OnValidate()

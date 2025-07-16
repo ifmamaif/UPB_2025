@@ -34,17 +34,19 @@ public class LSystemTurtleEditor : Editor
 
         serializedObject.ApplyModifiedProperties();
 
+        if (hasChanges)
+        {
+            m_lsystem.EnsureLineRendererIfNeeded();
+            EditorUtility.SetDirty(m_lsystem);
+        }
+
         RenderModeType currentRenderMode = (RenderModeType)m_renderModeProp.enumValueIndex;
         if (currentRenderMode != m_previousRenderMode)
         {
             m_previousRenderMode = currentRenderMode;
-            m_lsystem.EnsureLineRendererIfNeeded();
 
-            if (autoUpdate)
-            {
-                m_lsystem.GenerateInEditor();
-                EditorUtility.SetDirty(m_lsystem);
-            }
+            m_lsystem.GenerateInEditor();
+            EditorUtility.SetDirty(m_lsystem);
         }
 
         if (autoUpdate && hasChanges)
