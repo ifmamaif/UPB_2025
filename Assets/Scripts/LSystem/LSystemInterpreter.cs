@@ -1,18 +1,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Represents the current state of the turtle at any point in the L-System interpretation.
+/// </summary>
 public struct TurtleState
 {
-    public Vector3 position;
-    public Vector3 direction;
-    public float length;
-    public float width;
-    public Material material;
+    public Vector3 position;     // Current turtle position
+    public Vector3 direction;    // Current turtle heading
+    public float length;         // Current step length
+    public float width;          // Current line width
+    public Material material;    // Current material used for drawing
 }
 
+/// <summary>
+/// Converts parsed L-System tokens into drawable segments using turtle graphics.
+/// </summary>
 public class LSystemInterpreter
 {
-    private readonly float angle, widthScale, lengthScale;
+    private readonly float angle;
+    private readonly float widthScale;
+    private readonly float lengthScale;
     private readonly List<Material> materials;
 
     public LSystemInterpreter(float angle, float widthScale, float lengthScale, List<Material> materials)
@@ -23,56 +31,104 @@ public class LSystemInterpreter
         this.materials = materials;
     }
 
-    public List<LSystemRenderer.Segment> Interpret(List<LSystemParser.SymbolToken> tokens, Vector3 startDir, float initLength, float initWidth, Material defaultMat)
+    /// <summary>
+    /// Interprets a list of L-System tokens into drawable segments.
+    /// </summary>
+    /// <param name="tokens">List of parsed tokens</param>
+    /// <param name="startDir">Initial direction (usually Vector3.up)</param>
+    /// <param name="initLength">Initial forward movement distance</param>
+    /// <param name="initWidth">Initial drawing width</param>
+    /// <param name="defaultMat">Fallback material if no M(index) is specified</param>
+    /// <returns>List of segments to be rendered</returns>
+    public List<LSystemRenderer.Segment> Interpret(
+        List<LSystemParser.SymbolToken> tokens,
+        Vector3 startDir,
+        float initLength,
+        float initWidth,
+        Material defaultMat)
     {
         var segments = new List<LSystemRenderer.Segment>();
         var stack = new Stack<TurtleState>();
 
-        Vector3 pos = Vector3.zero, dir = startDir.normalized, prev = Vector3.zero;
-        float len = initLength, width = initWidth;
-        Material mat = defaultMat;
+        Vector3 pos = Vector3.zero;
+        Vector3 dir = startDir.normalized;
+
+        float length = initLength;
+        float width = initWidth;
+        Material material = defaultMat;
 
         foreach (var token in tokens)
         {
-            char c = token.symbol;
-            float? p = token.parameter;
+            char symbol = token.symbol;
+            float? param = token.parameter;
 
-            switch (c)
+            switch (symbol)
             {
+                // Forward: draw a segment from current position forward.
                 case 'F':
-                    float l = p ?? len;
-                    Vector3 next = pos + dir * l;
-                    segments.Add(new LSystemRenderer.Segment { start = pos, end = next, width = width, material = mat });
-                    prev = pos = next;
+                    float step = param ?? length;
+                    Vector3 nextPos = pos + dir * step;
+
+                    segments.Add(new LSystemRenderer.Segment
+                    {
+                        start = pos,
+                        end = nextPos,
+                        width = width,
+                        material = material
+                    });
+
+                    pos = nextPos;
                     break;
 
-                case '+': dir = Quaternion.Euler(0, 0, p ?? angle) * dir; break;
-                case '-': dir = Quaternion.Euler(0, 0, -(p ?? angle)) * dir; break;
-                case '&': dir = Quaternion.Euler(p ?? angle, 0, 0) * dir; break;
-                case '^': dir = Quaternion.Euler(-(p ?? angle), 0, 0) * dir; break;
-                case '/': dir = Quaternion.Euler(0, p ?? angle, 0) * dir; break;
-                case '\\': dir = Quaternion.Euler(0, -(p ?? angle), 0) * dir; break;
+                // Rotations around different axes.
+                case '+': dir = Quaternion.Euler(0, 0, param ?? angle) * dir; break;       // Yaw +
+                case '-': dir = Quaternion.Euler(0, 0, -(param ?? angle)) * dir; break;    // Yaw -
+                case '&': dir = Quaternion.Euler(param ?? angle, 0, 0) * dir; break;       // Pitch +
+                case '^': dir = Quaternion.Euler(-(param ?? angle), 0, 0) * dir; break;    // Pitch -
+                case '/': dir = Quaternion.Euler(0, param ?? angle, 0) * dir; break;       // Roll +
+                case '\\': dir = Quaternion.Euler(0, -(param ?? angle), 0) * dir; break;   // Roll -
 
+                // Width and length scaling.
                 case '!': width *= widthScale; break;
                 case '?': width /= widthScale; break;
-                case '\"': len *= lengthScale; break;
-                case '_': len /= lengthScale; break;
+                case '"': length *= lengthScale; break;
+                case '_': length /= lengthScale; break;
 
+                // Save state (branch start).
                 case '[':
-                    stack.Push(new TurtleState { position = pos, direction = dir, length = len, width = width, material = mat });
+                    stack.Push(new TurtleState
+                    {
+                        position = pos,
+                        direction = dir,
+                        length = length,
+                        width = width,
+                        material = material
+                    });
                     break;
 
+                // Restore state (branch end).
                 case ']':
-                    var s = stack.Pop();
-                    pos = s.position; dir = s.direction; len = s.length; width = s.width; mat = s.material;
-                    prev = pos;
+                    if (stack.Count > 0)
+                    {
+                        var state = stack.Pop();
+                        pos = state.position;
+                        dir = state.direction;
+                        length = state.length;
+                        width = state.width;
+                        material = state.material;
+                    }
                     break;
 
+                // Material override.
                 case 'M':
-                    int idx = p.HasValue ? Mathf.FloorToInt(p.Value) : 0;
-                    if (idx >= 0 && idx < materials.Count) mat = materials[idx];
+                    int index = param.HasValue ? Mathf.FloorToInt(param.Value) : 0;
+                    if (index >= 0 && index < materials.Count)
+                        material = materials[index];
                     break;
             }
+
+            // Optional: normalize direction to prevent drift over many rotations.
+            dir = dir.normalized;
         }
 
         return segments;
