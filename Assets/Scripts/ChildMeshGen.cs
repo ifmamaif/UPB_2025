@@ -63,6 +63,9 @@ public class ChildMeshGen : MonoBehaviour
     private readonly List<GameObject> _grass = new();
 
     private GameObject _waterObject = null;
+    public bool ShouldTree = true;
+    public bool ShouldGrass = true;
+    public bool ShouldWater = true;
 
     // Update is called once per frame
     public void Update()
@@ -108,6 +111,9 @@ public class ChildMeshGen : MonoBehaviour
 
         AddTrees();
         AddGrass();
+
+        if(!ShouldWater)
+            return;
 
         if (_waterObject == null)
         {
@@ -185,7 +191,7 @@ public class ChildMeshGen : MonoBehaviour
 
         updatePrivates();
 
-        list.ForEach(Destroy);
+        list.ForEach(DestroyImmediate);
         list.Clear();
 
         var minHeightTree = Gradient.colorKeys[TreeMinIndex].time * ScalingNoise;
@@ -249,7 +255,12 @@ public class ChildMeshGen : MonoBehaviour
         }
     }
 
-    private void AddTrees() => AddVegetation(gmObj: Tree,
+    private void AddTrees()
+    {
+        if (!ShouldTree)
+            return;
+
+        AddVegetation(gmObj: Tree,
             updatePrivates: () =>
             {
                 _treeMinIndex = TreeMinIndex;
@@ -262,9 +273,15 @@ public class ChildMeshGen : MonoBehaviour
             list: _tree,
             minDistance: 2,
             density: TreeDensity);
-    
+    }
 
-    private void AddGrass() => AddVegetation(gmObj: Grass,
+
+    private void AddGrass()
+    {
+            if (!ShouldGrass)
+                return;
+
+            AddVegetation(gmObj: Grass,
             updatePrivates: () =>
             {
                 _grassDensity = GrassDensity;
@@ -274,7 +291,8 @@ public class ChildMeshGen : MonoBehaviour
             minDistance: 0,
             density: GrassDensity,
             nrBushes: GrassBushes);
-    
+    }
+
     #region WATER
 
     private GameObject CreateWaterGameObject(Transform parent)

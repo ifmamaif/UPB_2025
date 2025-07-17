@@ -68,7 +68,10 @@ public class MeshGenerator : MonoBehaviour
     private readonly Dictionary<string,GameObject> _terrains = new();
 
     public bool ShouldUpdate = false;
-
+    public bool ShouldTree = true;
+    public bool ShouldGrass = true;
+    public bool ShouldWater = true;
+    public bool ShouldHideOldTerrain = false;
     public void CleanUp()
     {
         _terrains.Values.ToList().ForEach(DestroyImmediate); // It complains in Edit mode if you use Destroy
@@ -143,6 +146,10 @@ public class MeshGenerator : MonoBehaviour
 
         childMeshGen.Grass = Grass;
 
+        childMeshGen.ShouldGrass = ShouldGrass;
+        childMeshGen.ShouldTree = ShouldTree;
+        childMeshGen.ShouldWater = ShouldWater;
+
         childMeshGen.CreateShape(terrGmObject);
         childMeshGen.UpdateMesh(terrGmObject);
 
@@ -174,7 +181,10 @@ public class MeshGenerator : MonoBehaviour
         x = (int)(x / (XSize));
         z = (int)(z / (XSize));
 
+        if (ShouldHideOldTerrain)
+            _terrainGameObject.SetActive(false);
         _terrainGameObject = CreateTerrain(gameObject, new Vector3(x * XSize, 0, z * XSize));
+        _terrainGameObject.SetActive(true);
     }
 
     #region Util functions
