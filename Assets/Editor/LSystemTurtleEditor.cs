@@ -21,6 +21,8 @@ public class LSystemTurtleEditor : Editor
 
     public override void OnInspectorGUI()
     {
+        bool previousAutoUpdate = m_autoUpdateProp.boolValue;
+
         serializedObject.Update();
 
         DrawPropertiesExcluding(serializedObject, "m_autoUpdate");
@@ -36,7 +38,7 @@ public class LSystemTurtleEditor : Editor
 
         if (hasChanges)
         {
-            m_lsystem.EnsureLineRendererIfNeeded();
+            m_lsystem.SetupRenderParent();
             EditorUtility.SetDirty(m_lsystem);
         }
 
@@ -45,19 +47,25 @@ public class LSystemTurtleEditor : Editor
         {
             m_previousRenderMode = currentRenderMode;
 
+            m_lsystem.ClearChildren();
             m_lsystem.GenerateInEditor();
             EditorUtility.SetDirty(m_lsystem);
+            return;
         }
 
         if (autoUpdate && hasChanges)
         {
+            m_lsystem.ClearChildren();
             m_lsystem.GenerateInEditor();
             EditorUtility.SetDirty(m_lsystem);
+            return;
         }
-        else if (!autoUpdate)
+
+        if (!autoUpdate)
         {
             if (GUILayout.Button("Generate L-System"))
             {
+                m_lsystem.ClearChildren();
                 m_lsystem.GenerateInEditor();
                 EditorUtility.SetDirty(m_lsystem);
             }
